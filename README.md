@@ -40,7 +40,7 @@ uv sync
 ollama serve
 
 # Watch a forum for keywords
-trend-watch watch \
+trend-watch \
     --url https://forum.example.com/board \
     --keyword "baby formula" \
     --keyword "diaper rash" \
@@ -51,10 +51,10 @@ The report is saved to `data-watch/reports/watch_<board>_<ts>_report.html` and t
 
 ## CLI Reference
 
-### `trend-watch watch`
+### `trend-watch`
 
 ```
-trend-watch watch [OPTIONS]
+trend-watch [OPTIONS]
 ```
 
 | Option | Type | Default | Description |
@@ -74,26 +74,26 @@ trend-watch watch [OPTIONS]
 
 ```bash
 # Basic watch — 3 keywords, 10 pages
-trend-watch watch \
+trend-watch \
     --url https://www.dcard.tw/f/baby \
     -k 配方奶 -k 尿布 -k 副食品 \
     --pages 10
 
 # Offline report (no CDN needed)
-trend-watch watch \
+trend-watch \
     --url https://forum.example.com \
     -k keyword \
     --embed-plotly
 
 # Custom output directory and source label
-trend-watch watch \
+trend-watch \
     --url https://community.example.com/topics \
     -k "product recall" \
     --board "example-community" \
     --output results/
 
 # Skip LLM sentiment overlay (faster, no Ollama required after first crawl)
-trend-watch watch \
+trend-watch \
     --url https://example.com \
     -k keyword \
     --no-local-llm
@@ -228,6 +228,17 @@ The generic crawler uses plain HTTP requests — it works well on server-rendere
 
 If the first crawl fails due to poor CSS selector generation, delete `data/crawler-configs/<domain>.json` and retry. The LLM will generate new selectors.
 
+### Known Sites
+
+| Site | Domain | Status | Notes |
+|---|---|---|---|
+| PTT | ptt.cc | ✅ Works | `over18=1` cookie applied automatically |
+| Dcard | dcard.tw | ⚠️ Limited | React SPA with infinite scroll; static crawl returns partial results |
+| Mamibuy | mamibuy.com.tw | ✅ Works | Server-rendered |
+| Mombaby | mombaby.com.tw | ✅ Works | Server-rendered |
+| Babyhome | babyhome.com.tw | ✅ Works | Server-rendered |
+| Mamaclub | mamaclub.com | ✅ Works | Server-rendered |
+
 ## License
 
 MIT
@@ -276,7 +287,7 @@ uv sync
 ollama serve
 
 # 監看討論版上的關鍵字
-trend-watch watch \
+trend-watch \
     --url https://forum.example.com/board \
     --keyword "嬰兒奶粉" \
     --keyword "尿布疹" \
@@ -287,10 +298,10 @@ trend-watch watch \
 
 ## CLI 參考
 
-### `trend-watch watch`
+### `trend-watch`
 
 ```
-trend-watch watch [OPTIONS]
+trend-watch [OPTIONS]
 ```
 
 | 選項 | 類型 | 預設值 | 說明 |
@@ -310,26 +321,26 @@ trend-watch watch [OPTIONS]
 
 ```bash
 # 基本監看 — 3 個關鍵字，10 頁
-trend-watch watch \
+trend-watch \
     --url https://www.dcard.tw/f/baby \
     -k 配方奶 -k 尿布 -k 副食品 \
     --pages 10
 
 # 離線報告（不依賴 CDN）
-trend-watch watch \
+trend-watch \
     --url https://forum.example.com \
     -k 關鍵字 \
     --embed-plotly
 
 # 自訂輸出目錄與來源標籤
-trend-watch watch \
+trend-watch \
     --url https://community.example.com/topics \
     -k "產品召回" \
     --board "example-community" \
     --output results/
 
 # 跳過 LLM 情感補全（更快，首次爬取後不需要 Ollama）
-trend-watch watch \
+trend-watch \
     --url https://example.com \
     -k 關鍵字 \
     --no-local-llm
@@ -463,6 +474,17 @@ uv run pytest --no-cov -q  # 快速執行，不產生覆蓋率報告
 - **Cloudflare 保護** — 請求可能被封鎖；部分網站可在 `.env` 中設定自訂 `User-Agent` 來繞過
 
 若首次爬取因 CSS 選擇器生成不佳而失敗，請刪除 `data/crawler-configs/<domain>.json` 後重試，LLM 將重新生成選擇器。
+
+### 已知論壇相容性
+
+| 論壇 | 網域 | 狀態 | 備註 |
+|---|---|---|---|
+| PTT | ptt.cc | ✅ 可用 | 自動帶入 `over18=1` cookie |
+| Dcard | dcard.tw | ⚠️ 有限 | React SPA 無限捲動，靜態爬取僅能取得部分文章 |
+| Mamibuy 媽咪拜 | mamibuy.com.tw | ✅ 可用 | 伺服器端渲染 |
+| Mombaby 媽媽寶寶 | mombaby.com.tw | ✅ 可用 | 伺服器端渲染 |
+| Babyhome 寶貝家庭 | babyhome.com.tw | ✅ 可用 | 伺服器端渲染 |
+| Mamaclub 媽媽俱樂部 | mamaclub.com | ✅ 可用 | 伺服器端渲染 |
 
 ## 授權
 
