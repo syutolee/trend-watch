@@ -28,7 +28,7 @@ ollama pull gemma4:e4b
 ## Installation
 
 ```bash
-git clone <this-repo> trend-watch
+git clone https://github.com/syutolee/trend-watch
 cd trend-watch
 uv sync
 ```
@@ -264,7 +264,7 @@ ollama pull gemma4:e4b
 ## 安裝
 
 ```bash
-git clone <this-repo> trend-watch
+git clone https://github.com/syutolee/trend-watch
 cd trend-watch
 uv sync
 ```
