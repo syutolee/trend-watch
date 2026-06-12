@@ -1,6 +1,7 @@
 import random
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 from requests import Response, Session
@@ -10,6 +11,18 @@ from urllib3.util.retry import Retry
 from trend_watch.utils.logging import get_logger
 
 log = get_logger(__name__)
+
+_DOMAIN_COOKIES: dict[str, dict[str, str]] = {
+    "ptt.cc": {"over18": "1"},
+}
+
+
+def apply_domain_cookies(session: Session, url: str) -> None:
+    domain = urlparse(url).netloc.lstrip("www.")
+    for cookie_domain, cookies in _DOMAIN_COOKIES.items():
+        if cookie_domain in domain:
+            session.cookies.update(cookies)
+            break
 
 
 def build_session(max_retries: int = 3, backoff_factor: float = 0.5) -> Session:

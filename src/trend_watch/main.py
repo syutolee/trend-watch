@@ -15,23 +15,20 @@ app = typer.Typer(
 )
 
 _KNOWN_PLATFORMS = {
-    "ptt.cc": ("PTT", "uv run trend-monitor collect --platform ptt --board <board>"),
-    "mamibuy.com.tw": ("Mamibuy", "uv run trend-monitor collect --platform mamibuy"),
-    "mombaby.com.tw": ("Mombaby", "uv run trend-monitor collect --platform mombaby"),
-    "babyhome.com.tw": ("Babyhome", "uv run trend-monitor collect --platform babyhome-forum"),
-    "mamaclub.com": ("Mamaclub", "uv run trend-monitor collect --platform mamaclub"),
+    "ptt.cc": "PTT requires an over18 cookie - this is applied automatically.",
+    "dcard.tw": "Dcard uses infinite scroll (React SPA); static crawl may return limited results.",
+    "mamibuy.com.tw": "Mamibuy is server-rendered and generally works with the generic crawler.",
+    "mombaby.com.tw": "Mombaby is server-rendered and generally works with the generic crawler.",
+    "babyhome.com.tw": "Babyhome is server-rendered and generally works with the generic crawler.",
+    "mamaclub.com": "Mamaclub is server-rendered and generally works with the generic crawler.",
 }
 
 
 def _warn_known_domain(url: str) -> None:
     netloc = urlparse(url).netloc.lstrip("www.")
-    for domain, (name, hint) in _KNOWN_PLATFORMS.items():
+    for domain, note in _KNOWN_PLATFORMS.items():
         if domain in netloc:
-            typer.secho(
-                f"⚠  {url!r} looks like {name}. "
-                f"For best results use the dedicated collector:\n   {hint}",
-                fg=typer.colors.YELLOW,
-            )
+            typer.secho(f"[!] {note}", fg=typer.colors.YELLOW)
             break
 
 
@@ -45,19 +42,19 @@ def _check_ollama(base_url: str) -> bool:
 
 
 def _print_keyword_hits_table(hits: list) -> None:
-    typer.echo("\n🔍 Keyword Hit Summary")
-    typer.echo("─" * 60)
+    typer.echo("\n[Keyword Hit Summary]")
+    typer.echo("-" * 60)
     for h in hits:
         sent = h.sentiment_counts
         typer.echo(
             f"  {h.keyword:<20}  {h.n_posts:>4} articles  "
             f"{h.total_mentions:>5} mentions  "
-            f"😊{sent.get('positive', 0)} 😟{sent.get('negative', 0)} "
-            f"😐{sent.get('neutral', 0)}"
+            f"+{sent.get('positive', 0)} -{sent.get('negative', 0)} "
+            f"~{sent.get('neutral', 0)}"
         )
         for p in h.top_posts[:2]:
-            title = (p.title[:50] + "…") if len(p.title) > 50 else p.title
-            typer.echo(f"      › {title}  (×{p.mention_count})")
+            title = (p.title[:50] + "...") if len(p.title) > 50 else p.title
+            typer.echo(f"      > {title}  (x{p.mention_count})")
     typer.echo()
 
 
@@ -120,17 +117,17 @@ def watch(
             raise typer.Exit(1)
 
     # ── 1. Crawl ──────────────────────────────────────────────────────────────
-    typer.echo(f"🌐 Crawling {url!r}  (pages={pages}, board={board!r}) …")
+    typer.echo(f"Crawling {url!r}  (pages={pages}, board={board!r}) ...")
     collector = GenericCollector(config_dir=config_dir)
-    docs = asyncio.run(collector.collect(url, max_pages=pages, board=board))
+    docs = asyncio.run(collector.collect(url, pages=pages, board=board))
 
     if not docs:
         typer.secho(
             "Error: crawler returned 0 documents.\n"
             "Possible causes:\n"
-            "  • The page requires JavaScript — try a static mirror or increase --pages\n"
-            "  • Cloudflare/bot protection blocked the request\n"
-            "  • CSS selector generation failed — delete "
+            "  - The page requires JavaScript - try a static mirror or increase --pages\n"
+            "  - Cloudflare/bot protection blocked the request\n"
+            "  - CSS selector generation failed - delete "
             f"data/crawler-configs/{cache_domain}.json and retry",
             fg=typer.colors.RED, err=True,
         )
@@ -141,7 +138,7 @@ def watch(
     # ── 2. Persist raw ────────────────────────────────────────────────────────
     storage = WatchStorage(output)
     raw_path = storage.save_raw(docs, board=board)
-    typer.echo(f"  Raw saved → {raw_path}")
+    typer.echo(f"  Raw saved: {raw_path}")
 
     # ── 3. Keyword filter ──────────────────────────────────────────────────────
     filtered = filter_docs_by_keywords(docs, keywords)
@@ -150,15 +147,15 @@ def watch(
     if not filtered:
         typer.secho(
             "No articles matched. Suggestions:\n"
-            "  • Check spelling / try synonyms\n"
-            "  • Increase --pages to crawl more content\n"
+            "  - Check spelling / try synonyms\n"
+            "  - Increase --pages to crawl more content\n"
             f"  Raw data kept at: {raw_path}",
             fg=typer.colors.YELLOW,
         )
         raise typer.Exit(1)
 
     # ── 4. Analyse ────────────────────────────────────────────────────────────
-    typer.echo("⚙  Running analysis…")
+    typer.echo("Running analysis...")
     extra_terms = {"watch_keywords": list(keywords)}
     pipeline = AnalysisPipeline(
         dict_dir=dict_dir,
@@ -167,7 +164,7 @@ def watch(
     )
     result = pipeline.run(filtered)
     analyzed_path = storage.save_analysis(result, board=board)
-    typer.echo(f"  Analysis saved → {analyzed_path}")
+    typer.echo(f"  Analysis saved: {analyzed_path}")
 
     # ── 5. Keyword hit stats ───────────────────────────────────────────────────
     hits = build_keyword_hits(filtered, list(keywords), result.sentiment)
@@ -177,14 +174,14 @@ def watch(
     if llm_summary:
         try:
             from trend_watch.reporter.llm_summary import generate_summary
-            typer.echo("🤖 Generating LLM summary…")
+            typer.echo("Generating LLM summary...")
             summary_text = generate_summary(filtered, result)
         except Exception as exc:
             typer.secho(f"  LLM summary skipped: {exc}", fg=typer.colors.YELLOW)
 
     # ── 7. HTML report ────────────────────────────────────────────────────────
-    typer.echo("📊 Generating HTML report…")
-    report_title = f"🔍 Watch Report — {board}"
+    typer.echo("Generating HTML report...")
+    report_title = f"Watch Report - {board}"
     report_path = storage.report_path(board=board)
     HTMLReportGenerator().generate(
         filtered,
@@ -203,13 +200,13 @@ def watch(
     s = result.sentiment
     if s:
         typer.echo(
-            f"📈 Sentiment: +{s.positive_count} positive  "
+            f"Sentiment: +{s.positive_count} positive  "
             f"-{s.negative_count} negative  "
             f"~{s.neutral_count} neutral  "
             f"avg={s.avg_pn_score:.3f}"
         )
 
-    typer.secho(f"\n✅ Report ready: {report_path}", fg=typer.colors.GREEN)
+    typer.secho(f"\nReport ready: {report_path}", fg=typer.colors.GREEN)
 
 
 if __name__ == "__main__":

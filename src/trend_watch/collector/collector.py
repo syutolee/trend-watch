@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from trend_watch.collector.config import SiteConfig, _DEFAULT_CONFIG_DIR
 from trend_watch.collector.extractor import generate_site_config
 from trend_watch.models import Attitude, NormalizedDocument, Platform, Post, Reaction
-from trend_watch.utils.http import build_session, polite_get
+from trend_watch.utils.http import apply_domain_cookies, build_session, polite_get
 from trend_watch.utils.logging import LoggerMixin
 
 _HEADERS = {
@@ -23,6 +23,8 @@ _HEADERS = {
     ),
     "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
 }
+
+# Cookies required by specific domains to access content
 
 
 class GenericCollector(LoggerMixin):
@@ -50,6 +52,7 @@ class GenericCollector(LoggerMixin):
         board_name = board or parsed.path.strip("/").replace("/", "_") or parsed.netloc
 
         session = build_session(max_retries=2, backoff_factor=0.5)
+        apply_domain_cookies(session, url)
         docs: list[NormalizedDocument] = []
         current_url: str | None = url
 

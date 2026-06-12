@@ -9,10 +9,31 @@ from urllib.parse import urlparse
 
 from trend_watch.collector.config import SiteConfig, _DEFAULT_CONFIG_DIR
 from trend_watch.collector.evaluator import _HEADERS, evaluate_url
-from trend_watch.utils.http import build_session, polite_get
+from trend_watch.utils.http import apply_domain_cookies, build_session, polite_get
 from trend_watch.utils.logging import get_logger
 
 log = get_logger(__name__)
+
+_PRESET_SELECTORS: dict[str, dict[str, str]] = {
+    "ptt.cc": {
+        "list_selector": "div.r-ent div.title a",
+        "title_selector": ".article-metaline .article-meta-value",
+        "author_selector": ".article-metaline .article-meta-value",
+        "time_selector": ".article-metaline-right .article-meta-value",
+        "content_selector": "#main-content",
+        "comment_selector": "div.push",
+        "next_page_selector": "div.btn-group-paging a.btn.wide:first-child",
+    },
+    "dcard.tw": {
+        "list_selector": "article a",
+        "title_selector": "h1",
+        "author_selector": "",
+        "time_selector": "time",
+        "content_selector": "article",
+        "comment_selector": "",
+        "next_page_selector": "",
+    },
+}
 
 _SELECTOR_PROMPT = """\
 You are an expert web scraper. Analyze this HTML snippet from {url} and produce CSS selectors.
@@ -54,22 +75,29 @@ async def generate_site_config(
             await progress_cb(f"Using cached config: {config_dir}/{domain}.json")
         return existing
 
-    if progress_cb:
-        await progress_cb(f"Analyzing page structure for {url}…")
-
-    session = build_session(max_retries=2, backoff_factor=0.3)
-    html_sample = ""
-    try:
-        resp = polite_get(session, url, min_delay=1.0, max_delay=2.0, timeout=20, headers=_HEADERS)
-        html_sample = resp.text[:6000]
-    except Exception as exc:
-        log.warning("Cannot fetch %s for selector generation: %s", url, exc)
-
-    selectors: dict[str, str] = {}
-    if html_sample:
+    for preset_domain, preset in _PRESET_SELECTORS.items():
+        if preset_domain in domain:
+            log.info("Using preset selectors for %s", domain)
+            selectors = preset
+            break
+    else:
         if progress_cb:
-            await progress_cb("LLM generating CSS selectors…")
-        selectors = await _ask_llm(url, html_sample)
+            await progress_cb(f"Analyzing page structure for {url}...")
+
+        session = build_session(max_retries=2, backoff_factor=0.3)
+        apply_domain_cookies(session, url)
+        html_sample = ""
+        try:
+            resp = polite_get(session, url, min_delay=1.0, max_delay=2.0, timeout=20, headers=_HEADERS)
+            html_sample = resp.text[:6000]
+        except Exception as exc:
+            log.warning("Cannot fetch %s for selector generation: %s", url, exc)
+
+        selectors = {}
+        if html_sample:
+            if progress_cb:
+                await progress_cb("LLM generating CSS selectors...")
+            selectors = await _ask_llm(url, html_sample)
 
     crawl = evaluate_url(url)
 
