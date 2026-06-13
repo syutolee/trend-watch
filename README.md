@@ -35,11 +35,20 @@ uv sync
 
 ## Quick Start
 
-```bash
-# Make sure Ollama is running
-ollama serve
+### Interactive mode (recommended)
 
-# Watch a forum for keywords
+Run with no arguments to enter the step-by-step wizard:
+
+```bash
+ollama serve      # make sure Ollama is running
+uv run trend-watch
+```
+
+The wizard will ask for your LLM model, platform (PTT / Dcard / custom URL), board, keywords, and number of pages — then start crawling automatically.
+
+### CLI mode (advanced)
+
+```bash
 trend-watch \
     --url https://forum.example.com/board \
     --keyword "baby formula" \
@@ -282,11 +291,20 @@ uv sync
 
 ## 快速開始
 
-```bash
-# 確認 Ollama 正在執行
-ollama serve
+### 互動模式（推薦）
 
-# 監看討論版上的關鍵字
+不帶任何參數直接執行，進入逐步引導精靈：
+
+```bash
+ollama serve        # 確認 Ollama 正在執行
+uv run trend-watch
+```
+
+精靈會依序詢問 LLM 模型、平台（PTT / Dcard / 自訂網址）、版面、關鍵字、爬取頁數，確認後自動開始爬取。
+
+### 指令模式（進階）
+
+```bash
 trend-watch \
     --url https://forum.example.com/board \
     --keyword "嬰兒奶粉" \
