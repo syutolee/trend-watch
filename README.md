@@ -44,16 +44,22 @@ ollama serve      # make sure Ollama is running
 uv run trend-watch
 ```
 
-The wizard will ask for your LLM model, platform (PTT / Dcard / custom URL), board, keywords, and number of pages — then start crawling automatically.
+The wizard will ask for your LLM model, platform (PTT / Dcard / Mobile01 / Reddit / custom URL), board, keywords, and number of pages — then start crawling automatically.
+
+Leave the keyword prompt blank to enable **unfiltered mode**: every crawled article is analyzed and included in the report (no keyword filter applied).
 
 ### CLI mode (advanced)
 
 ```bash
+# With keywords (filtered mode)
 trend-watch \
     --url https://forum.example.com/board \
     --keyword "baby formula" \
     --keyword "diaper rash" \
     --pages 5
+
+# Without keywords (unfiltered mode — analyze all articles)
+trend-watch --url https://www.ptt.cc/bbs/Stock/ --pages 5
 ```
 
 The report is saved to `data-watch/reports/watch_<board>_<ts>_report.html` and the path is printed at the end.
@@ -243,10 +249,8 @@ If the first crawl fails due to poor CSS selector generation, delete `data/crawl
 |---|---|---|---|
 | PTT | ptt.cc | ✅ Works | `over18=1` cookie applied automatically |
 | Dcard | dcard.tw | ⚠️ Limited | React SPA with infinite scroll; static crawl returns partial results |
-| Mamibuy | mamibuy.com.tw | ✅ Works | Server-rendered |
-| Mombaby | mombaby.com.tw | ✅ Works | Server-rendered |
-| Babyhome | babyhome.com.tw | ✅ Works | Server-rendered |
-| Mamaclub | mamaclub.com | ✅ Works | Server-rendered |
+| Mobile01 | mobile01.com | ⚠️ Limited | Behind Akamai WAF; requests may be blocked (403) |
+| Reddit | reddit.com | ⚠️ Limited | Uses old.reddit.com; plain HTTP may be rate-limited or blocked |
 
 ## License
 
@@ -300,16 +304,22 @@ ollama serve        # 確認 Ollama 正在執行
 uv run trend-watch
 ```
 
-精靈會依序詢問 LLM 模型、平台（PTT / Dcard / 自訂網址）、版面、關鍵字、爬取頁數，確認後自動開始爬取。
+精靈會依序詢問 LLM 模型、平台（PTT / Dcard / Mobile01 / Reddit / 自訂網址）、版面、關鍵字、爬取頁數，確認後自動開始爬取。
+
+關鍵字欄位留空可啟用**無篩選模式**：所有爬取的文章都會納入分析，報告中不顯示關鍵字命中區塊。
 
 ### 指令模式（進階）
 
 ```bash
+# 帶關鍵字（篩選模式）
 trend-watch \
     --url https://forum.example.com/board \
     --keyword "嬰兒奶粉" \
     --keyword "尿布疹" \
     --pages 5
+
+# 不帶關鍵字（無篩選模式—分析所有文章）
+trend-watch --url https://www.ptt.cc/bbs/Stock/ --pages 5
 ```
 
 報告儲存於 `data-watch/reports/watch_<board>_<ts>_report.html`，執行結束後會印出完整路徑。
@@ -499,10 +509,8 @@ uv run pytest --no-cov -q  # 快速執行，不產生覆蓋率報告
 |---|---|---|---|
 | PTT | ptt.cc | ✅ 可用 | 自動帶入 `over18=1` cookie |
 | Dcard | dcard.tw | ⚠️ 有限 | React SPA 無限捲動，靜態爬取僅能取得部分文章 |
-| Mamibuy 媽咪拜 | mamibuy.com.tw | ✅ 可用 | 伺服器端渲染 |
-| Mombaby 媽媽寶寶 | mombaby.com.tw | ✅ 可用 | 伺服器端渲染 |
-| Babyhome 寶貝家庭 | babyhome.com.tw | ✅ 可用 | 伺服器端渲染 |
-| Mamaclub 媽媽俱樂部 | mamaclub.com | ✅ 可用 | 伺服器端渲染 |
+| Mobile01 | mobile01.com | ⚠️ 有限 | 受 Akamai WAF 保護，自動化請求可能被封鎖（403） |
+| Reddit | reddit.com | ⚠️ 有限 | 使用 old.reddit.com；純 HTTP 爬取可能被速率限制或封鎖 |
 
 ## 授權
 

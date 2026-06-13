@@ -8,8 +8,10 @@ from typing import Any
 import typer
 
 _PLATFORM_URLS = {
-    "PTT":   "https://www.ptt.cc/bbs/{board}/",
-    "Dcard": "https://www.dcard.tw/f/{board}",
+    "PTT":      "https://www.ptt.cc/bbs/{board}/",
+    "Dcard":    "https://www.dcard.tw/f/{board}",
+    "Mobile01": "https://www.mobile01.com/topiclist.php?f={board}",
+    "Reddit":   "https://old.reddit.com/r/{board}/",
 }
 
 _ANTHROPIC_MODELS = [
@@ -106,8 +108,10 @@ def run_wizard() -> dict[str, Any]:
     if plat_choice <= len(plat_names):
         plat_name = plat_names[plat_choice - 1]
         board_hints = {
-            "PTT":   "e.g. Gossiping, sex, Stock",
-            "Dcard": "e.g. baby, relationship, mood",
+            "PTT":      "e.g. Gossiping, sex, Stock",
+            "Dcard":    "e.g. baby, relationship, mood",
+            "Mobile01": "forum ID number, e.g. 638 (see URL: topiclist.php?f=NNN)",
+            "Reddit":   "subreddit name, e.g. technology",
         }
         board_input = typer.prompt(f"  Board name ({board_hints[plat_name]})")
         url = _PLATFORM_URLS[plat_name].format(board=board_input)
@@ -121,13 +125,13 @@ def run_wizard() -> dict[str, Any]:
     typer.echo("\nStep 3/4  Keywords")
     typer.echo("  Separate multiple keywords with commas.")
     typer.echo('  Example: apple, orange  or  "flying car","smart watch"')
-    while True:
-        raw_kw = typer.prompt("  Keywords")
-        keywords = _parse_keywords(raw_kw)
-        if keywords:
-            typer.echo(f"  Parsed {len(keywords)} keyword(s): {', '.join(keywords)}")
-            break
-        typer.secho("  Please enter at least one keyword.", fg=typer.colors.YELLOW)
+    typer.echo("  Leave blank to analyze ALL crawled articles (unfiltered mode).")
+    raw_kw = typer.prompt("  Keywords", default="")
+    keywords = _parse_keywords(raw_kw)
+    if keywords:
+        typer.echo(f"  Parsed {len(keywords)} keyword(s): {', '.join(keywords)}")
+    else:
+        typer.echo("  No keywords - all crawled articles will be analyzed.")
 
     # ── Step 4: Pages ─────────────────────────────────────────
     pages = typer.prompt("\nStep 4/4  Pages to crawl", default=5, type=int)
@@ -136,7 +140,7 @@ def run_wizard() -> dict[str, Any]:
     typer.echo("\n" + "-" * 60)
     typer.echo("  Ready to crawl")
     typer.echo(f"  URL      : {url}")
-    typer.echo(f"  Keywords : {', '.join(keywords)}")
+    typer.echo(f"  Keywords : {', '.join(keywords) if keywords else '(none - analyze all)'}")
     typer.echo(f"  Pages    : {pages}")
     typer.echo(f"  Model    : {llm['provider']} / {llm['model']}")
     typer.echo("-" * 60)

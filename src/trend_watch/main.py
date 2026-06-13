@@ -17,10 +17,8 @@ app = typer.Typer(
 _KNOWN_PLATFORMS = {
     "ptt.cc": "PTT requires an over18 cookie - this is applied automatically.",
     "dcard.tw": "Dcard uses infinite scroll (React SPA); static crawl may return limited results.",
-    "mamibuy.com.tw": "Mamibuy is server-rendered and generally works with the generic crawler.",
-    "mombaby.com.tw": "Mombaby is server-rendered and generally works with the generic crawler.",
-    "babyhome.com.tw": "Babyhome is server-rendered and generally works with the generic crawler.",
-    "mamaclub.com": "Mamaclub is server-rendered and generally works with the generic crawler.",
+    "mobile01.com": "Mobile01 is behind Akamai WAF and may return 403 for automated requests.",
+    "reddit.com": "Reddit may rate-limit/block plain HTTP; old.reddit.com is used for static access.",
 }
 
 
@@ -133,23 +131,26 @@ def _run_watch(
     raw_path = storage.save_raw(docs, board=board)
     typer.echo(f"  Raw saved: {raw_path}")
 
-    # 3. Keyword filter
-    filtered = filter_docs_by_keywords(docs, keywords)
-    typer.echo(f"  Keyword filter: {len(filtered)}/{len(docs)} articles matched ({', '.join(keywords)})")
-
-    if not filtered:
-        typer.secho(
-            "No articles matched. Suggestions:\n"
-            "  - Check spelling / try synonyms\n"
-            "  - Increase --pages to crawl more content\n"
-            f"  Raw data kept at: {raw_path}",
-            fg=typer.colors.YELLOW,
-        )
-        raise typer.Exit(1)
+    # 3. Keyword filter (skip when no keywords = unfiltered mode)
+    if keywords:
+        filtered = filter_docs_by_keywords(docs, keywords)
+        typer.echo(f"  Keyword filter: {len(filtered)}/{len(docs)} articles matched ({', '.join(keywords)})")
+        if not filtered:
+            typer.secho(
+                "No articles matched. Suggestions:\n"
+                "  - Check spelling / try synonyms\n"
+                "  - Increase --pages to crawl more content\n"
+                f"  Raw data kept at: {raw_path}",
+                fg=typer.colors.YELLOW,
+            )
+            raise typer.Exit(1)
+    else:
+        filtered = docs
+        typer.echo(f"  No keywords set - analyzing all {len(docs)} articles (unfiltered mode)")
 
     # 4. Analyse
     typer.echo("Running analysis...")
-    extra_terms = {"watch_keywords": list(keywords)}
+    extra_terms = {"watch_keywords": list(keywords)} if keywords else {}
     pipeline = AnalysisPipeline(
         dict_dir=dict_dir,
         use_local_llm=use_local_llm,
@@ -159,8 +160,8 @@ def _run_watch(
     analyzed_path = storage.save_analysis(result, board=board)
     typer.echo(f"  Analysis saved: {analyzed_path}")
 
-    # 5. Keyword hit stats
-    hits = build_keyword_hits(filtered, list(keywords), result.sentiment)
+    # 5. Keyword hit stats (empty list when unfiltered)
+    hits = build_keyword_hits(filtered, list(keywords), result.sentiment) if keywords else []
 
     # 6. Optional LLM summary
     summary_text = ""
@@ -188,7 +189,8 @@ def _run_watch(
     )
 
     # 8. Summary
-    _print_keyword_hits_table(hits)
+    if hits:
+        _print_keyword_hits_table(hits)
 
     s = result.sentiment
     if s:
@@ -237,12 +239,9 @@ def watch(
         _run_watch(**params["watch"])
         return
 
-    # CLI mode: validate required args
+    # CLI mode: URL required; keywords optional (no -k = unfiltered mode)
     if url is None:
         typer.secho("Error: --url / -u is required.", fg=typer.colors.RED, err=True)
-        raise typer.Exit(1)
-    if not keywords:
-        typer.secho("Error: at least one --keyword / -k is required.", fg=typer.colors.RED, err=True)
         raise typer.Exit(1)
 
     _run_watch(

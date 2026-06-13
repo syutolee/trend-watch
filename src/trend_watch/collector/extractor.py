@@ -33,6 +33,24 @@ _PRESET_SELECTORS: dict[str, dict[str, str]] = {
         "comment_selector": "",
         "next_page_selector": "",
     },
+    "mobile01.com": {
+        "list_selector": "h2.c-listItem__title a, a.c-link.u-truncate--multiline",
+        "title_selector": "h1",
+        "author_selector": ".c-authorInfo__name, .u-gapRight--small",
+        "time_selector": "time, .c-post__time",
+        "content_selector": ".c-article__content, .js-postContent",
+        "comment_selector": ".c-reply__content",
+        "next_page_selector": "a.c-pagination__next, .pagination a[rel=next]",
+    },
+    "reddit.com": {
+        "list_selector": "a.title.may-blank",
+        "title_selector": "a.title",
+        "author_selector": "a.author",
+        "time_selector": "time",
+        "content_selector": "div.expando div.usertext-body, div.entry div.usertext-body",
+        "comment_selector": "div.commentarea div.usertext-body",
+        "next_page_selector": "span.next-button a",
+    },
 }
 
 _SELECTOR_PROMPT = """\
