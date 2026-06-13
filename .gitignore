@@ -45,3 +45,6 @@ htmlcov/
 
 # Logs
 *.log
+
+# Local dev notes (not for repo)
+CLAUDE.md
